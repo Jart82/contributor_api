@@ -1,12 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import session from 'express-session';
-import passport from 'passport';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
+
+const session = require('express-session');
+const passport = require('passport');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Global Exception Filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
   
   // Enable CORS
   app.enableCors({
@@ -14,30 +19,29 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Session configuration MUST come before passport
+  // Session configuration
   app.use(
     session({
       secret: process.env.SESSION_SECRET || 'your-secret-key',
       resave: false,
       saveUninitialized: false,
       cookie: {
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
       },
     }),
   );
 
-  // Passport serialization configuration
-  passport.serializeUser((user: any, done) => {
+  // Passport configuration
+  passport.serializeUser((user: any, done: any) => {
     done(null, user);
   });
 
-  passport.deserializeUser((user: any, done) => {
+  passport.deserializeUser((user: any, done: any) => {
     done(null, user);
   });
 
-  // Initialize passport
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -58,13 +62,16 @@ async function bootstrap() {
     .addTag('contributors')
     .addTag('repositories')
     .addTag('auth')
+    .addBearerAuth()
     .build();
+  
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
+  
+  console.log(`\n🚀 Application is running on: http://localhost:${port}`);
+  console.log(`📚 Swagger documentation: http://localhost:${port}/api\n`);
 }
 bootstrap();

@@ -91,7 +91,7 @@ export class ContributorsService {
     const userDetails = await this.githubService.getUserDetails(username);
     const contributors = await this.githubService.aggregateContributors();
     const contributor = contributors.find((c) => c.login === username);
-
+  
     return {
       ...userDetails,
       contributionStats: contributor || { contributions: 0, repositories: [] },
